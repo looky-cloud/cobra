@@ -23,7 +23,7 @@ func executeCommandC(root *Command, args ...string) (c *Command, output string, 
 	root.SetOutput(buf)
 	root.SetArgs(args)
 
-	c, err = root.ExecuteC()
+	c, err = root.ExecuteC(c.getargs(), true)
 
 	return c, buf.String(), err
 }
