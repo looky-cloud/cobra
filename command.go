@@ -797,15 +797,32 @@ func (c *Command) preRun() {
 // and run through the command tree finding appropriate matches
 // for commands and then corresponding flags.
 func (c *Command) Execute() error {
-	_, err := c.ExecuteC()
+	_, err := c.ExecuteC(c.getargs(), true)
+	return err
+}
+
+func (c *Command) getargs() []string {
+	var args []string
+
+	// Workaround FAIL with "go test -v" or "cobra.test -test.v", see #155
+	if c.args == nil && filepath.Base(os.Args[0]) != "cobra.test" {
+		args = os.Args[1:]
+	} else {
+		args = c.args
+	}
+	return args
+}
+
+func (c *Command) ExecuteSubCmd(args []string) error {
+	_, err := c.ExecuteC(args, false)
 	return err
 }
 
 // ExecuteC executes the command.
-func (c *Command) ExecuteC() (cmd *Command, err error) {
+func (c *Command) ExecuteC(args []string, forceRoot bool) (cmd *Command, err error) {
 	// Regardless of what command execute is called on, run on Root only
-	if c.HasParent() {
-		return c.Root().ExecuteC()
+	if forceRoot && c.HasParent() {
+		return c.Root().ExecuteC(args, false)
 	}
 
 	// windows hook
@@ -816,15 +833,6 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 	// initialize help as the last point possible to allow for user
 	// overriding
 	c.InitDefaultHelpCmd()
-
-	var args []string
-
-	// Workaround FAIL with "go test -v" or "cobra.test -test.v", see #155
-	if c.args == nil && filepath.Base(os.Args[0]) != "cobra.test" {
-		args = os.Args[1:]
-	} else {
-		args = c.args
-	}
 
 	var flags []string
 	if c.TraverseChildren {
